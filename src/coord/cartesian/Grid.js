@@ -3,7 +3,7 @@
  *
  * TODO Default cartesian
  */
-define(function(require, factory) {
+define(function (require, factory) {
 
     var layout = require('../../util/layout');
     var axisHelper = require('../../coord/axisHelper');
@@ -34,15 +34,21 @@ define(function(require, factory) {
         var rect;
         var step = 1;
         var labelCount = labels.length;
-        if (labelCount > 40) {
-            // Simple optimization for large amount of labels
-            step = Math.ceil(labelCount / 40);
-        }
-        for (var i = 0; i < labelCount; i += step) {
-            if (!axis.isLabelIgnored(i)) {
-                var singleRect = axisModel.getTextRect(labels[i]);
-                // FIXME consider label rotate
-                rect ? rect.union(singleRect) : (rect = singleRect);
+
+        // @PJK - Calculating label size only if the axis label is showed
+        if (axisModel.get("axisLabel.show")) {
+            if (labelCount > 40) {
+                // Simple optimization for large amount of labels
+                step = Math.ceil(labelCount / 40);
+            }
+
+            for (var i = 0; i < labelCount; i += step) {
+                if (!axis.isLabelIgnored(i)) {
+                    var singleRect = axisModel.getTextRect(labels[i]);
+                    // FIXME consider label rotate
+
+                    rect ? rect.union(singleRect) : (rect = singleRect);
+                }
             }
         }
         return rect;
@@ -141,7 +147,6 @@ define(function(require, factory) {
                 width: api.getWidth(),
                 height: api.getHeight()
             });
-
         this._rect = gridRect;
 
         var axesList = this._axesList;
@@ -149,24 +154,25 @@ define(function(require, factory) {
         adjustAxes();
 
         // Minus label size
+        // @PJK - 修复在 grid.containLabel == true && axisLabel.show == false 时
+        // 图表大小计算仍然包含 axisLabel 宽度的问题
         if (gridModel.get('containLabel')) {
             each(axesList, function (axis) {
                 if (!axis.model.get('axisLabel.inside')) {
                     var labelUnionRect = getLabelUnionRect(axis);
-                    if (labelUnionRect) {
-                        var dim = axis.isHorizontal() ? 'height' : 'width';
-                        var margin = axis.model.get('axisLabel.margin');
-                        gridRect[dim] -= labelUnionRect[dim] + margin;
-                        if (axis.position === 'top') {
-                            gridRect.y += labelUnionRect.height + margin;
-                        }
-                        else if (axis.position === 'left')  {
-                            gridRect.x += labelUnionRect.width + margin;
-                        }
+                    var dim = axis.isHorizontal() ? 'height' : 'width';
+                    var margin = axis.model.get('axisLabel.margin');
+
+                    gridRect[dim] -= labelUnionRect ? labelUnionRect[dim] : 0 + margin;
+
+                    if (axis.position === 'top') {
+                        gridRect.y += labelUnionRect ? labelUnionRect.height : 0 + margin;
+                    }
+                    else if (axis.position === 'left') {
+                        gridRect.x += labelUnionRect ? labelUnionRect.width : 0 + margin;
                     }
                 }
             });
-
             adjustAxes();
         }
 
@@ -345,7 +351,7 @@ define(function(require, factory) {
 
                 if (!isAxisUsedInTheGrid(xAxisModel, gridModel, ecModel)
                     || !isAxisUsedInTheGrid(yAxisModel, gridModel, ecModel)
-                 ) {
+                ) {
                     return;
                 }
 
@@ -382,21 +388,22 @@ define(function(require, factory) {
         // Fast transform
         axis.toGlobalCoord = axis.dim === 'x'
             ? function (coord) {
-                return coord + coordBase;
-            }
+            return coord + coordBase;
+        }
             : function (coord) {
-                return axisExtentSum - coord + coordBase;
-            };
+            return axisExtentSum - coord + coordBase;
+        };
         axis.toLocalCoord = axis.dim === 'x'
             ? function (coord) {
-                return coord - coordBase;
-            }
+            return coord - coordBase;
+        }
             : function (coord) {
-                return axisExtentSum - coord + coordBase;
-            };
+            return axisExtentSum - coord + coordBase;
+        };
     }
 
     var axesTypes = ['xAxis', 'yAxis'];
+
     /**
      * @inner
      */
@@ -411,10 +418,10 @@ define(function(require, factory) {
             if (__DEV__) {
                 if (!axisModel) {
                     throw new Error(axisType + ' "' + zrUtil.retrieve(
-                        seriesModel.get(axisType + 'Index'),
-                        seriesModel.get(axisType + 'Id'),
-                        0
-                    ) + '" not found');
+                            seriesModel.get(axisType + 'Index'),
+                            seriesModel.get(axisType + 'Id'),
+                            0
+                        ) + '" not found');
                 }
             }
             return axisModel;

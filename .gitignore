@@ -169,3 +169,7 @@ theme/thumb
 /lib
 todo
 **/*.log
+
+# Custom ignore
+build/exclude.list
+build/rsync.sh
